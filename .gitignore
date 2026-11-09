@@ -1,0 +1,23 @@
+# Exécutables
+/gardien
+/gardien.exe
+*.exe
+/dist/
+
+# Tests et couverture
+*.test
+*.out
+coverage.*
+
+# Données locales de développement
+/tmp/
+*.log
+
+# Configuration locale de Claude Code
+.claude/settings.local.json
+
+# Éditeurs et OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
