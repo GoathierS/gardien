@@ -9,16 +9,16 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Tests (${{ matrix.os }})
+  agent:
+    name: Agent – tests (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Formatage
@@ -31,11 +31,9 @@ jobs:
       - name: Tests avec détection des accès concurrents
         if: runner.os == 'Linux'
         run: go test -race ./...
-      - name: Compilation
-        run: go build ./cmd/gardien
 
   croisee:
-    name: Compilation croisée
+    name: Agent – ${{ matrix.cible.goos }}/${{ matrix.cible.goarch }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -46,13 +44,59 @@ jobs:
           - { goos: darwin, goarch: arm64 }
           - { goos: darwin, goarch: amd64 }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: ${{ matrix.cible.goos }}/${{ matrix.cible.goarch }}
+      - name: Compilation sans CGO
         env:
           GOOS: ${{ matrix.cible.goos }}
           GOARCH: ${{ matrix.cible.goarch }}
           CGO_ENABLED: "0"
         run: go build -o /dev/null ./cmd/gardien
+
+  bureau:
+    name: Appli de bureau (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Dépendances Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Compilation Linux
+        if: runner.os == 'Linux'
+        run: go build -tags desktop,production,webkit2_41 -o gardien-bureau ./cmd/gardien-bureau
+      - name: Compilation macOS
+        if: runner.os == 'macOS'
+        env:
+          CGO_LDFLAGS: -framework UniformTypeIdentifiers
+        run: go build -tags desktop,production -o gardien-bureau ./cmd/gardien-bureau
+      - name: Compilation Windows
+        if: runner.os == 'Windows'
+        run: go build -tags desktop,production -ldflags "-H windowsgui" -o gardien-bureau.exe ./cmd/gardien-bureau
+
+  mobile:
+    name: Téléphone (Capacitor)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Copie de l'interface
+        run: npm run ui
+      - name: Vérification de Capacitor
+        run: npx cap doctor

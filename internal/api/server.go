@@ -1,4 +1,8 @@
-// Package api sert l'interface web et l'API locale de gardien.
+// Package api sert l'API de l'agent gardien et son interface.
+//
+// L'API est versionnée (/api/v1/…) : les interfaces (appli de bureau, téléphone,
+// page web du NAS) en dépendent, on n'y fait pas de changement incompatible
+// sans passer à /api/v2.
 package api
 
 import (
@@ -17,16 +21,19 @@ import (
 // Handler construit les routes de l'API et de l'interface.
 func Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, r *http.Request) {
 		ecrireJSON(w, http.StatusOK, map[string]string{"version": version.String()})
 	})
-	mux.HandleFunc("GET /api/sante/volumes", func(w http.ResponseWriter, r *http.Request) {
-		vols, err := sante.Volumes(r.Context())
-		if err != nil {
-			ecrireJSON(w, http.StatusInternalServerError, map[string]string{"erreur": err.Error()})
+	mux.HandleFunc("GET /api/v1/sante", func(w http.ResponseWriter, r *http.Request) {
+		ecrireJSON(w, http.StatusOK, sante.Tous(r.Context()))
+	})
+	mux.HandleFunc("GET /api/v1/sante/{capteur}", func(w http.ResponseWriter, r *http.Request) {
+		c, ok := sante.Trouver(r.PathValue("capteur"))
+		if !ok {
+			ecrireJSON(w, http.StatusNotFound, map[string]string{"erreur": "capteur inconnu"})
 			return
 		}
-		ecrireJSON(w, http.StatusOK, vols)
+		ecrireJSON(w, http.StatusOK, sante.Releve(r.Context(), c))
 	})
 	mux.Handle("GET /", http.FileServerFS(web.Fichiers()))
 	return mux

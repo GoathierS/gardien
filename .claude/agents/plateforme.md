@@ -8,7 +8,8 @@ model: sonnet
 Tu es responsable de la portabilité de gardien. Lis `CLAUDE.md` avant de commencer.
 
 Règles :
-- Pas de CGO : `GOOS=… go build` doit fonctionner depuis n'importe quel OS.
+- L'agent (`cmd/gardien`) reste sans CGO : `GOOS=… CGO_ENABLED=0 go build ./cmd/gardien` doit fonctionner depuis n'importe quel OS. Seule l'appli de bureau Wails (`cmd/gardien-bureau`) utilise CGO, et elle se compile sur chaque OS (voir la CI).
+- L'appli téléphone (`mobile/`, Capacitor) fait aussi partie de ton périmètre : configuration Android et iOS, permissions, limites d'arrière-plan.
 - Code propre à un OS dans des fichiers suffixés, avec une version de repli qui renvoie une erreur claire (« non pris en charge sur cet OS »).
 - Les outils externes (smartctl, etc.) sont optionnels : leur absence ne doit pas faire planter gardien, mais être expliquée à l'utilisateur.
 - Les droits élevés ne sont demandés que quand c'est indispensable, et c'est documenté.

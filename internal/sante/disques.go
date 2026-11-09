@@ -1,9 +1,10 @@
-// Package sante surveille l'état du PC : espace disque pour l'instant,
-// puis SMART, températures et erreurs système.
+// Package sante surveille l'état du PC au moyen de capteurs (voir Capteur).
 package sante
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/shirou/gopsutil/v4/disk"
 )
@@ -15,7 +16,19 @@ const (
 	NiveauOK        Niveau = "ok"
 	NiveauAttention Niveau = "attention"
 	NiveauCritique  Niveau = "critique"
+	NiveauInconnu   Niveau = "inconnu"
 )
+
+// gravite ordonne les niveaux, du moins au plus grave.
+var gravite = map[Niveau]int{NiveauOK: 0, NiveauInconnu: 1, NiveauAttention: 2, NiveauCritique: 3}
+
+// Pire renvoie le plus grave des deux niveaux.
+func Pire(a, b Niveau) Niveau {
+	if gravite[b] > gravite[a] {
+		return b
+	}
+	return a
+}
 
 // Seuils d'occupation d'un volume, en pourcentage.
 const (
@@ -50,7 +63,7 @@ func NiveauOccupation(pourcent float64) Niveau {
 func Volumes(ctx context.Context) ([]Volume, error) {
 	parts, err := disk.PartitionsWithContext(ctx, false)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("liste des volumes : %w", err)
 	}
 
 	vols := make([]Volume, 0, len(parts))
@@ -69,4 +82,47 @@ func Volumes(ctx context.Context) ([]Volume, error) {
 		})
 	}
 	return vols, nil
+}
+
+// EspaceDisque est le capteur d'occupation des volumes.
+type EspaceDisque struct{}
+
+func (EspaceDisque) ID() string  { return "espace-disque" }
+func (EspaceDisque) Nom() string { return "Espace disque" }
+
+func (EspaceDisque) Mesurer(ctx context.Context) (Rapport, error) {
+	vols, err := Volumes(ctx)
+	if err != nil {
+		return Rapport{}, err
+	}
+	niveau := NiveauOK
+	for _, v := range vols {
+		niveau = Pire(niveau, v.Niveau)
+	}
+	return Rapport{Niveau: niveau, Resume: resumeEspace(vols), Details: vols}, nil
+}
+
+// resumeEspace écrit la phrase affichée à l'utilisateur.
+func resumeEspace(vols []Volume) string {
+	if len(vols) == 0 {
+		return "Aucun volume détecté."
+	}
+	var critiques, attention []string
+	for _, v := range vols {
+		texte := fmt.Sprintf("%s (%.0f %%)", v.Point, v.Utilise)
+		switch v.Niveau {
+		case NiveauCritique:
+			critiques = append(critiques, texte)
+		case NiveauAttention:
+			attention = append(attention, texte)
+		}
+	}
+	switch {
+	case len(critiques) > 0:
+		return "Presque plein : " + strings.Join(critiques, ", ") + ". Libère de la place rapidement."
+	case len(attention) > 0:
+		return "Bien rempli : " + strings.Join(attention, ", ") + ". Pense à faire du tri."
+	default:
+		return "Tous les disques ont de la place."
+	}
 }

@@ -1,0 +1,93 @@
+:root {
+  color-scheme: light dark;
+  --fond: #f6f7f9;
+  --carte: #ffffff;
+  --texte: #1d2430;
+  --discret: #6b7280;
+  --trait: #e5e7eb;
+  --ok: #2e8b57;
+  --attention: #c27c00;
+  --critique: #c62828;
+  --inconnu: #6b7280;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #14171c;
+    --carte: #1d2128;
+    --texte: #e6e8eb;
+    --discret: #9aa1ab;
+    --trait: #2c313a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem 2rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 60rem;
+  margin: 0 auto 1.5rem;
+}
+
+h1 { margin: 0; font-size: 1.6rem; }
+h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
+.sous-titre { margin: .2rem 0 0; color: var(--discret); font-size: .85rem; }
+
+main { max-width: 60rem; margin: 0 auto; display: grid; gap: 1rem; }
+
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: .75rem;
+  padding: 1.1rem 1.25rem;
+}
+
+.entete-carte { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.resume { margin: .25rem 0 0; }
+
+.pastille {
+  display: inline-block;
+  padding: .2rem .7rem;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--inconnu);
+  white-space: nowrap;
+}
+.pastille.ok { background: var(--ok); }
+.pastille.attention { background: var(--attention); }
+.pastille.critique { background: var(--critique); }
+
+table { width: 100%; border-collapse: collapse; margin-top: .9rem; font-size: .92rem; }
+th, td { text-align: left; padding: .45rem .3rem; border-bottom: 1px solid var(--trait); }
+th { color: var(--discret); font-weight: 500; }
+.nombre { text-align: right; font-variant-numeric: tabular-nums; }
+
+.barre { height: .45rem; border-radius: .25rem; background: var(--trait); overflow: hidden; margin-bottom: .2rem; }
+.barre > span { display: block; height: 100%; background: var(--ok); }
+.barre.attention > span { background: var(--attention); }
+.barre.critique > span { background: var(--critique); }
+
+.bandeau {
+  max-width: 60rem;
+  margin: 0 auto 1rem;
+  padding: .8rem 1rem;
+  border-radius: .6rem;
+  background: color-mix(in srgb, var(--attention) 15%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--attention) 40%, transparent);
+}
+
+.chargement, .erreur { color: var(--discret); }
+.erreur { color: var(--critique); }

@@ -2,68 +2,23 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>gardien</title>
-  <style>
-    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-    body { max-width: 52rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { margin-bottom: .2rem; }
-    .sous-titre { color: GrayText; margin-top: 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { text-align: left; padding: .5rem; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
-    td.nombre, th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
-    .barre { height: .5rem; border-radius: .25rem; background: color-mix(in srgb, currentColor 12%, transparent); overflow: hidden; }
-    .barre > span { display: block; height: 100%; }
-    .ok > span { background: #2e8b57; }
-    .attention > span { background: #d08c00; }
-    .critique > span { background: #c62828; }
-    .etat { font-weight: 600; }
-    .erreur { color: #c62828; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>gardien</h1>
-  <p class="sous-titre" id="version">…</p>
+  <header>
+    <div>
+      <h1>gardien</h1>
+      <p class="sous-titre" id="version">…</p>
+    </div>
+    <span class="pastille" id="etat-global">…</span>
+  </header>
 
-  <h2>Espace disque</h2>
-  <table>
-    <thead>
-      <tr><th>Volume</th><th>Occupation</th><th class="nombre">Libre</th><th class="nombre">Total</th><th>État</th></tr>
-    </thead>
-    <tbody id="volumes"><tr><td colspan="5">Chargement…</td></tr></tbody>
-  </table>
+  <div class="bandeau" id="bandeau" hidden></div>
 
-  <script>
-    const etats = { ok: "OK", attention: "Attention", critique: "Critique" };
-    const go = (o) => (o / 1024 ** 3).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " Go";
+  <main id="rapports"><p class="chargement">Chargement…</p></main>
 
-    async function charger() {
-      try {
-        const v = await (await fetch("/api/version")).json();
-        document.getElementById("version").textContent = v.version;
-
-        const vols = await (await fetch("/api/sante/volumes")).json();
-        const corps = document.getElementById("volumes");
-        corps.replaceChildren(...vols.map((vol) => {
-          const tr = document.createElement("tr");
-          const pct = vol.utilise_pourcent.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
-          tr.innerHTML = `
-            <td></td>
-            <td><div class="barre ${vol.niveau}"><span style="width:${vol.utilise_pourcent}%"></span></div>${pct} %</td>
-            <td class="nombre">${go(vol.libre_octets)}</td>
-            <td class="nombre">${go(vol.total_octets)}</td>
-            <td class="etat"></td>`;
-          tr.cells[0].textContent = vol.point;
-          tr.cells[4].textContent = etats[vol.niveau] ?? vol.niveau;
-          return tr;
-        }));
-      } catch (e) {
-        document.getElementById("volumes").innerHTML =
-          '<tr><td colspan="5" class="erreur">Impossible de joindre le service gardien.</td></tr>';
-      }
-    }
-    charger();
-    setInterval(charger, 30000);
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -10,26 +10,49 @@ import (
 	"github.com/GoathierS/gardien/internal/sante"
 )
 
-func TestVolumes(t *testing.T) {
+func requete(t *testing.T, methode, chemin string) *httptest.ResponseRecorder {
+	t.Helper()
 	rec := httptest.NewRecorder()
-	Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/sante/volumes", nil))
+	Handler().ServeHTTP(rec, httptest.NewRequest(methode, chemin, nil))
+	return rec
+}
 
+func TestSante(t *testing.T) {
+	rec := requete(t, http.MethodGet, "/api/v1/sante")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("code %d, attendu 200 : %s", rec.Code, rec.Body)
 	}
-	var vols []sante.Volume
-	if err := json.Unmarshal(rec.Body.Bytes(), &vols); err != nil {
+	var rs []sante.Rapport
+	if err := json.Unmarshal(rec.Body.Bytes(), &rs); err != nil {
 		t.Fatalf("JSON invalide : %v", err)
 	}
-	if len(vols) == 0 {
-		t.Fatal("aucun volume renvoyé")
+	if len(rs) == 0 {
+		t.Fatal("aucun rapport renvoyé")
+	}
+}
+
+func TestSanteCapteur(t *testing.T) {
+	rec := requete(t, http.MethodGet, "/api/v1/sante/espace-disque")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code %d, attendu 200 : %s", rec.Code, rec.Body)
+	}
+	var r sante.Rapport
+	if err := json.Unmarshal(rec.Body.Bytes(), &r); err != nil {
+		t.Fatalf("JSON invalide : %v", err)
+	}
+	if r.Capteur != "espace-disque" {
+		t.Errorf("capteur %q, attendu espace-disque", r.Capteur)
+	}
+}
+
+func TestCapteurInconnu(t *testing.T) {
+	if rec := requete(t, http.MethodGet, "/api/v1/sante/nexiste-pas"); rec.Code != http.StatusNotFound {
+		t.Fatalf("code %d, attendu 404", rec.Code)
 	}
 }
 
 func TestInterface(t *testing.T) {
-	rec := httptest.NewRecorder()
-	Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-
+	rec := requete(t, http.MethodGet, "/")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("code %d, attendu 200", rec.Code)
 	}
@@ -39,10 +62,7 @@ func TestInterface(t *testing.T) {
 }
 
 func TestMethodeRefusee(t *testing.T) {
-	rec := httptest.NewRecorder()
-	Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/sante/volumes", nil))
-
-	if rec.Code != http.StatusMethodNotAllowed {
+	if rec := requete(t, http.MethodPost, "/api/v1/sante"); rec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("code %d, attendu 405", rec.Code)
 	}
 }
